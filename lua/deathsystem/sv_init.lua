@@ -44,19 +44,21 @@ hook.Add("PlayerHurt", "PlayerDummyHook", function(victim, attacker, healthRemai
         victim:SetHealth(1)
         victim:GodEnable()
 
+        -- if not IsValid(player_dummy) then return end
         local player_dummy = victim:CreatePlayerDummy()
-        if not IsValid(player_dummy) then return end
-
         local player_dummy_pos = player_dummy:GetPos()
 
-        victim:Spectate(OBS_MODE_CHASE)
-        victim:SpectateEntity(player_dummy)
-        victim:StripWeapons()
+        print(IsEntity(player_dummy))
+        timer.Simple(0.1, function() -- Delay the network message
+            if IsValid(victim) and IsValid(player_dummy) then
+                victim:SpectateDummy()
 
-        net.Start("player_dummy_network")
-        net.WriteEntity(player_dummy)
-        net.WriteVector(player_dummy_pos)
-        net.Broadcast()
+                net.Start("player_dummy_network")
+                net.WriteEntity(player_dummy)
+                net.WriteVector(player_dummy_pos)
+                net.Broadcast() -- Send only to the victim
+            end
+        end)
 
         timer.Simple(5, function()
             if IsValid(victim) then
