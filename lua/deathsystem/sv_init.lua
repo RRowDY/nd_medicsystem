@@ -30,6 +30,14 @@ function meta:DestroyPlayerDummy()
     end
 end
 
+function meta:SpectateDummy()
+    if not IsValid(self.PlayerDummy) then return end
+
+    self:Spectate(OBS_MODE_CHASE)
+    self:SpectateEntity(self.PlayerDummy)
+    self:StripWeapons()
+end
+
 -- Hook for handling player hurt event
 hook.Add("PlayerHurt", "PlayerDummyHook", function(victim, attacker, healthRemaining, damageTaken)
     if healthRemaining <= 1 then
