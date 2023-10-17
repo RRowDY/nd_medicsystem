@@ -38,6 +38,8 @@ function meta:SpectateDummy()
     self:StripWeapons()
 end
 
+local remove_player_dummy_bool
+
 -- Hook for handling player hurt event
 hook.Add("PlayerHurt", "PlayerDummyHook", function(victim, attacker, healthRemaining, damageTaken)
     if healthRemaining <= 1 then
@@ -47,6 +49,7 @@ hook.Add("PlayerHurt", "PlayerDummyHook", function(victim, attacker, healthRemai
         -- if not IsValid(player_dummy) then return end
         local player_dummy = victim:CreatePlayerDummy()
         local player_dummy_pos = player_dummy:GetPos()
+        remove_player_dummy_bool = false
 
         print(IsEntity(player_dummy))
         timer.Simple(0.1, function() -- Delay the network message
@@ -56,6 +59,7 @@ hook.Add("PlayerHurt", "PlayerDummyHook", function(victim, attacker, healthRemai
                 net.Start("player_dummy_network")
                 net.WriteEntity(player_dummy)
                 net.WriteVector(player_dummy_pos)
+                net.WriteBool(remove_player_dummy_bool)
                 net.Broadcast() -- Send only to the victim
             end
         end)
@@ -69,6 +73,11 @@ hook.Add("PlayerHurt", "PlayerDummyHook", function(victim, attacker, healthRemai
                 victim:SetPos(player_dummy:GetPos())
                 victim:DestroyPlayerDummy()
             end
+
+            remove_player_dummy_bool = not remove_player_dummy_bool
+            net.Start("player_dummy_network")
+            net.WriteBool(remove_player_dummy_bool)
+            net.Broadcast()
         end)
     end
 end)
