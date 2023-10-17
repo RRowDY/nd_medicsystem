@@ -3,6 +3,7 @@ net.Receive("player_dummy_network", function()
     local player_dummy = net.ReadEntity()
     if not IsValid(player_dummy) then return end
     local player_dummy_pos = net.ReadVector()
+    local remove_player_dummy_bool = net.ReadBool()
 
     print(player_dummy)
     print(player_dummy_pos)
@@ -25,39 +26,41 @@ net.Receive("player_dummy_network", function()
         surface.DrawPoly(circle)
     end
 
-    timer.Create("PlayerPositionThink", 0.1, 0, function()
-        if IsValid(player_dummy) then
-            print("TRUE")
-            player_dummy_pos = player_dummy:GetPos()
-        end
-    end)
+    if not remove_player_dummy_bool then
+        timer.Create("PlayerPositionThink", 0.1, 0, function()
+            if IsValid(player_dummy) then
+                print("TRUE")
+                player_dummy_pos = player_dummy:GetPos()
+            end
+        end)
 
-    -- Draw the circle at the playerDummy's position
-    hook.Add("PostDrawOpaqueRenderables", "DrawPlayerDummyCircle", function()
-        if not IsValid(player_dummy) then return end
+        -- Draw the circle at the playerDummy's position
+        hook.Add("PostDrawOpaqueRenderables", "DrawPlayerDummyCircle", function()
+            if not IsValid(player_dummy) then return end
+            local tr = util.TraceLine({
+                start = player_dummy_pos + Vector(0, 0, 20), -- Start slightly above the entity
+                endpos = player_dummy_pos - Vector(0, 0, 1000), -- Cast a ray downward
+                mask = MASK_SOLID,   -- Use the modified trace mask
+                filter = player_dummy,
+            })
 
-        local tr = util.TraceLine({
-            start = player_dummy_pos + Vector(0, 0, 20), -- Start slightly above the entity
-            endpos = player_dummy_pos - Vector(0, 0, 1000), -- Cast a ray downward
-            mask = MASK_SOLID,   -- Use the modified trace mask
-            filter = player_dummy,
-        })
+            local groundPos = Vector(player_dummy:GetPos().x, player_dummy:GetPos().y, tr.HitPos.z + 2)
 
-        local groundPos = Vector(player_dummy:GetPos().x, player_dummy:GetPos().y, tr.HitPos.z + 2)
+            local eyePos = LocalPlayer():EyePos()
+            local distance = eyePos:Distance(player_dummy_pos)
 
-        local eyePos = LocalPlayer():EyePos()
-        local distance = eyePos:Distance(player_dummy_pos)
+            -- Adjust the circle's size based on distance
+            local circleRadius = 20 + (distance / 50)  -- You can adjust the scaling factor as needed
 
-        -- Adjust the circle's size based on distance
-        local circleRadius = 20 + (distance / 50)  -- You can adjust the scaling factor as needed
-
-        cam.Start3D2D(groundPos, Angle(0, 0, 0), 1)
-        DrawCircle(Vector(0, 0), circleRadius, Color(255, 0, 0, 150))  -- Change color and alpha as needed
-        cam.End3D2D()
-    end)
+            cam.Start3D2D(groundPos, Angle(0, 0, 0), 1)
+            DrawCircle(Vector(0, 0), circleRadius, Color(255, 0, 0, 150))  -- Change color and alpha as needed
+            cam.End3D2D()
+        end)
+    else
+        hook.Remove("PostDrawOpaqueRenderables", "DrawPlayerDummyCircle")
+    end
 end)
 
--- hook.Remove("PostDrawOpaqueRenderables", "DrawPlayerDummyCircle")
 if timer.Exists("PlayerPositionThink") then
     timer.Remove("PlayerPositionThink")
 end
